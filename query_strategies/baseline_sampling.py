@@ -40,8 +40,9 @@ from sklearn.utils import check_random_state
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.validation import FLOAT_DTYPES
 from sklearn.metrics.pairwise import rbf_kernel as rbf
-from sklearn.externals.six import string_types
+from six import string_types
 from sklearn.exceptions import ConvergenceWarning
+
 
 def gram_red(L, L_inv, u_loc):
     n = np.shape(L_inv)[0]
@@ -57,14 +58,17 @@ def gram_red(L, L_inv, u_loc):
     L_red_inv = D - e.dot(e.T) / f
     return L_red, L_red_inv
 
+
 def gram_aug(L_Y, L_Y_inv, b_u, c_u):
     d_u = c_u - b_u.T.dot(L_Y_inv.dot(b_u))
     g_u = L_Y_inv.dot(b_u)
 
-    L_aug = np.block([[L_Y, b_u],[b_u.T, c_u]])
-    L_aug_inv = np.block([[L_Y_inv + g_u.dot(g_u.T/d_u), -g_u/d_u], [-g_u.T/d_u, 1.0/d_u]])
+    L_aug = np.block([[L_Y, b_u], [b_u.T, c_u]])
+    L_aug_inv = np.block(
+        [[L_Y_inv + g_u.dot(g_u.T/d_u), -g_u/d_u], [-g_u.T/d_u, 1.0/d_u]])
 
     return L_aug, L_aug_inv
+
 
 def sample_k_imp(Phi, k, max_iter, rng=np.random):
     n = np.shape(Phi)[0]
@@ -100,7 +104,8 @@ def sample_k_imp(Phi, k, max_iter, rng=np.random):
         b_v = Phi[Ind_red, :].dot(Phi[[v], :].T)
         c_v = Phi[[v], :].dot(Phi[[v], :].T)
 
-        p = min(1, (c_v - b_v.T.dot(L_Y_inv.dot(b_v))) / (c_u - b_u.T.dot(L_Y_inv.dot(b_u))) )
+        p = min(1, (c_v - b_v.T.dot(L_Y_inv.dot(b_v))) /
+                (c_u - b_u.T.dot(L_Y_inv.dot(b_u))))
 
         if rng.uniform() <= p:
             X[u] = False
@@ -113,12 +118,16 @@ def sample_k_imp(Phi, k, max_iter, rng=np.random):
 
     return Ind
 
+
 class BaselineSampling(Strategy):
     def __init__(self, X, Y, idxs_lb, net, handler, args):
-        super(BaselineSampling, self).__init__(X, Y, idxs_lb, net, handler, args)
+        super(BaselineSampling, self).__init__(
+            X, Y, idxs_lb, net, handler, args)
 
     def query(self, n):
         idxs_unlabeled = np.arange(self.n_pool)[~self.idxs_lb]
-        gradEmbedding = self.get_grad_embedding(self.X[idxs_unlabeled], self.Y.numpy()[idxs_unlabeled]).numpy()
-        chosen = sample_k_imp(gradEmbedding, n, max_iter= int(5 * n * np.log(n)))
+        gradEmbedding = self.get_grad_embedding(
+            self.X[idxs_unlabeled], self.Y.numpy()[idxs_unlabeled]).numpy()
+        chosen = sample_k_imp(
+            gradEmbedding, n, max_iter=int(5 * n * np.log(n)))
         return idxs_unlabeled[chosen]
